@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class = "container my-3">
+    <div class="row my-3">
+        <div class="col-6">
+            <a href="{{ url_for('question.create') }}" class="btn btn-primary">질문 등록하기</a> <!-- question.create로 감 -->
+        </div>
+        <div class="col-6">
+            <div class="input-group">
+                <input type="text" id="search_kw" class="form-control" value="{{ kw or '' }}">
+                <div class="input-group-append">
+                    <button class="btn btn-outline-secondary" type="button" id="btn_search">찾기</button>
+                </div> <!-- 이 버튼의 동작은 어떻게 가능한거지....?--> <!-- id btn_search로 js 코드를 가져오는 듯 -->
+            </div>
+        </div>
+    </div>
+    <table class="table">
+        <thead>
+        <tr class="text-center table-dark">
+            <th>번호</th>
+            <th style="width:50%">제목</th>
+            <th>글쓴이</th>
+            <th>작성일시</th>
+        </tr> <!-- tr로 컬럼명 정의하고 테이블 만듬-->
+        </thead>
+        <tbody>
+        {% if question_list %} <!-- Question list에 값이 포함되어 있다면 -->
+        {% for question in question_list.items %} <!-- question object 반복해서 로드하고 띄워줌 -->
+        <tr class="text-center">
+            <td>{{question_list.total - ((question_list.page-1) * question_list.per_page) - loop.index0}}</td> <!-- Question 번호 구하는 연산-->
+            <td class="text-start">
+                <a href="{{ url_for('question.detail', question_id=question.id)}}">{{question.subject}}</a> <!-- Question 제목에다가 href로 링크 걸어둠-->
+                {% if question.answer_set|length > 0 %} <!-- 답눌렀을 때 답이 있고 길이가 0이 넘는다면-->
+                <span class="text-danger small mx-2">{{ question.answer_set|length}}</span> <!-- 보여줌 -->
+                {% endif %}
+            </td>
+            <td>{{ question.user.username }}</td> <!-- 질문자 이름 -->
+            <td>{{question.create_date|datetime}}</td> <!-- 게시글 생성 시간-->
+        </tr>
+        {% endfor %}
+        {% else %} <!-- Question list에 아무것도 없다면-->
+        <tr>
+            <td colspan="3">질문이 없습니다.</td> <!-- 질문이 없습니다-->
+        </tr>
+        {% endif %}
+        </tbody>
+    </table>
+        <!-- 페이징처리 시작 -->
+    <ul class="pagination justify-content-center">
+        <!-- 이전페이지 -->
+        {% if question_list.has_prev %} <!-- Question이 prev가 있다면 즉 1번이 아니라면-->
+        <li class="page-item">
+            <a class="page-link" data-page="{{ question_list.prev_num }}" href="javascript:void(0)">이전</a>
+        </li>
+        {% else %}
+        <li class="page-item disabled"> <!-- 1번이라면 이전 버튼을 disabled-->
+            <a class="page-link" tabindex="-1" aria-disabled="true" href="javascript:void(0)">이전</a>
+        </li> <!-- Question_list는 db 객체라 다양한 기능을 지원함-->
+        {% endif %}
+        <!-- 페이지번호 -->
+        {% for page_num in question_list.iter_pages() %}
+        {% if page_num %} <!-- page 번호가 있다면-->
+        {% if page_num != question_list.page %} 
+        <li class="page-item">
+            <a class="page-link" data-page="{{ page_num }}" href="javascript:void(0)">{{ page_num }}</a>
+        </li>
+        {% else %}
+        <li class="page-item active" aria-current="page">
+            <a class="page-link" href="javascript:void(0)">{{ page_num }}</a>
+        </li>
+        {% endif %}
+        {% else %}
+        <li class="disabled">
+            <a class="page-link" href="javascript:void(0)">...</a> <!-- 아무 동작도 일으키지 않는 자바스크립트 함수-->
+        </li>
+        {% endif %}
+        {% endfor %}
+        <!-- 다음페이지 -->
+        {% if question_list.has_next %} <!-- Question 객체가 뒤에를 가지고 있다면 즉 마지막 페이지가 아니라면-->
+        <li class="page-item">
+            <a class="page-link" data-page="{{ question_list.next_num }}" href="javascript:void(0)">다음</a>
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+            <a class="page-link" tabindex="-1" aria-disabled="true" href="javascript:void(0)">다음</a>
+        </li>
+        {% endif %}
+    </ul>
+        <!-- 페이징처리 끝 -->
+</div>
+<form id="searchForm" method="get" action="{{ url_for('question._list') }}">
+    <input type="hidden" id="kw" name="kw" value="{{ kw or '' }}">
+    <input type="hidden" id="page" name="page" value="{{ page }}">
+</form>
+{% endblock %}
+{% block script %}
+<script type='text/javascript'>
+const page_elements = document.getElementsByClassName("page-link");
+Array.from(page_elements).forEach(function(element) {
+    element.addEventListener('click', function() {
+        document.getElementById('page').value = this.dataset.page;
+        document.getElementById('searchForm').submit();
+    });
+});
+const btn_search = document.getElementById("btn_search");
+btn_search.addEventListener('click', function() {
+    document.getElementById('kw').value = document.getElementById('search_kw').value;
+    document.getElementById('page').value = 1;  // 검색버튼을 클릭할 경우 1페이지부터 조회한다.
+    document.getElementById('searchForm').submit();
+});
+</script>
+{% endblock %}

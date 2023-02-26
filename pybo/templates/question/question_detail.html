@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container my-3">
+    <!-- flash error-->
+    {% for message in get_flashed_messages() %}
+    <div class="alert alert-danger" role="alert">
+        {{ message }}
+    </div>
+    {% endfor %}
+    <!-- 질문 -->
+    <h2 class="border-bottom py-2">{{ question.subject }}</h2> <!-- 질문의 제목-->
+    <div class="card my-3">
+        <div class="card-body">
+            <div class="card-text">{{ question.content|markdown }}</div> <!-- markdown 문법으로 퀘스쳔 내용-->
+            <div class="d-flex justify-content-end">
+                {% if question.modify_date %} <!--질문 수정 내역 있으면 수정했다고 띄우삼-->
+                <div class="badge bg-light text-dark p-2 text-start mx-3">
+                    <div class="mb-2">modified at</div> 
+                    <div>{{ question.modify_date|datetime }}</div>
+                </div>
+                {% endif %}
+                <div class="badge bg-light text-dark p-2 text-start"> <!-- 글쓴 사람 띄우삼 -->
+                    <div class="mb-2">{{question.user.username}}</div>
+                    <div>{{ question.create_date|datetime }}</div>
+                </div>
+            </div>
+            <div class="my-3">
+                <a href="javascript:void(0)" data-uri="{{ url_for('question.vote', question_id=question.id) }}"class="recommend btn btn-sm btn-outline-secondary"> 추천
+                 <span class="badge rounded-pill bg-success">{{ question.voter|length }}</span> <!-- 추천 버튼 누르면 추천 Url로 올리고 question.vote가 다시 여기 디테일로 부름-->
+                </a>
+                {% if g.user == question.user %} <!-- 추천한 사람이 본인이면 추천 못하도록, 아래 실행함, 당연한게 추천 누르고 안누르고 보내지는 곳이 다름-->
+                <a href="{{ url_for('question.modify', question_id=question.id) }}" class="btn btn-sm btn-outline-secondary">수정</a> <!-- 수정 버튼 누르면 수정하는 url로 꼬우-->
+                <a href="javascript:void(0)" class="delete btn btn-sm btn-outline-secondary" data-uri="{{ url_for('question.delete', question_id=question.id)}}">삭제</a>  <!-- 삭제하면 삭제하는 js 실행 !-->  
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <!-- 답변 목록 -->
+    <h5 class="border-bottom my-3 py-2">{{ question.answer_set|length }}개의 답변이 있습니다.</h5> <!-- 답변 개수 가져와서 띄워줌-->
+    {% for answer in question.answer_set %} <!-- 답변이 여러개 있으면 돌아가면서 보여줌-->
+    <a id="answer_{{ answer.id }}"></a>
+    <div class="card my-3">
+        <div class="card-body">
+            <div class="card-text">{{ answer.content|markdown }}</div>
+            <div class="d-flex justify-content-end">
+                {% if answer.modify_date %} <!-- 답변 수정한 날짜가 있다면-->
+                <div class="badge bg-light text-dark p-2 text-start mx-3">
+                    <div class="mb-2">modified at</div>
+                    <div>{{ answer.modify_date|datetime }}</div>
+                </div>
+                {% endif %} <!--답변 글 생성 시간 및 작성자 나타냄 -->
+                <div class="badge bg-light text-dark p-2 text-start">
+                    <div class="mb-2">{{answer.user.username}}</div> 
+                    <div>{{ answer.create_date|datetime }}</div>
+                </div>
+            </div>
+            <div class="my-3">
+                <a href="javascript:void(0)" data-uri="{{ url_for('answer.vote', answer_id=answer.id) }}"class="recommend btn btn-sm btn-outline-secondary"> 추천
+                 <span class="badge rounded-pill bg-success">{{ answer.voter|length }}</span>
+                </a>
+                {% if g.user == answer.user %} <!-- 답변 추천하고자 하는 사람이 같은 사람이면-->
+                <a href="{{ url_for('answer.modify', answer_id=answer.id) }}" class="btn btn-sm btn-outline-secondary">수정</a>
+                <a href="#" class="delete btn btn-sm btn-outline-secondary " data-uri="{{ url_for('answer.delete', answer_id=answer.id) }}">삭제</a> <!-- 삭제 되면 따로 이동을 하지는 않으니까 href=# 이동 안함 ! 의미-->
+                {% endif %}
+            </div>            
+        </div>
+    </div>
+    {% endfor %}
+    <!-- 답변 등록 -->
+    <form action="{{ url_for('answer.create', question_id=question.id) }}" method="post" class="my-3">
+        {{ form.csrf_token}}
+        {% if form.errors %} <!-- 에러 있으면 에러 띄우자 !-->
+        <div class="alert alert-danger" role="alert">
+            {% for field, errors in form.errors.items() %}
+            <strong>{{ form[field].label }}</strong>
+            <ul>
+                {% for error in errors %}
+                <li>{{error}}</li>
+                {% endfor %}
+            </ul>
+            {% endfor %}
+        </div>
+        {% endif %}
+        <div class="form-group">
+            <textarea {% if not g.user %}disabled{% endif %} name= "content" id="content" class="form-control" rows="10"></textarea>
+        </div>
+        <input type="submit" value="답변등록" class="btn btn-primary">
+    </form>
+</div>
+{% endblock %}
+{% block script %}
+<script type='text/javascript'>
+const delete_elements = document.getElementsByClassName("delete");
+Array.from(delete_elements).forEach(function(element) {
+    element.addEventListener('click', function() {
+        if(confirm("정말로 삭제하시겠습니까?")) {
+            location.href = this.dataset.uri;
+        };
+    });
+});
+const recommend_elements = document.getElementsByClassName("recommend");
+Array.from(recommend_elements).forEach(function(element) {
+    element.addEventListener('click', function() {
+        if(confirm("정말로 추천하시겠습니까?")) {
+            location.href = this.dataset.uri;
+        };
+    });
+});
+</script>
+{% endblock %}
